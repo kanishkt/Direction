@@ -14,16 +14,17 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.firebase.client.DataSnapshot;
-import com.firebase.client.Firebase;
-import com.firebase.client.FirebaseError;
-import com.firebase.client.ValueEventListener;
+import com.parse.GetCallback;
+import com.parse.Parse;
+import com.parse.ParseInstallation;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import static android.hardware.SensorManager.SENSOR_DELAY_FASTEST;
+import static android.hardware.SensorManager.SENSOR_DELAY_NORMAL;
 
 public class MainActivity extends Activity implements SensorEventListener {
 
@@ -40,10 +41,16 @@ public class MainActivity extends Activity implements SensorEventListener {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Firebase.setAndroidContext(this);
-        //makeFirebase();
+        Parse.enableLocalDatastore(this);
+        Parse.initialize(this);
+        ParseInstallation.getCurrentInstallation().saveInBackground();
+//        try {
+//            doStuff();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-       activate();
+        activate();
     }
 
     public void activate(){
@@ -51,10 +58,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-                mSensorManager.registerListener(MainActivity.this, mAccelerometer, SENSOR_DELAY_FASTEST);
-                mSensorManager.registerListener(MainActivity.this, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_FASTEST);
-                mSensorManager.registerListener(MainActivity.this, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SensorManager.SENSOR_DELAY_FASTEST);
-                mSensorManager.registerListener(MainActivity.this, mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT), SensorManager.SENSOR_DELAY_FASTEST);
+                mSensorManager.registerListener(MainActivity.this, mAccelerometer, SENSOR_DELAY_NORMAL);
+                mSensorManager.registerListener(MainActivity.this, mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE), SensorManager.SENSOR_DELAY_NORMAL);
+                mSensorManager.registerListener(MainActivity.this, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SensorManager.SENSOR_DELAY_NORMAL);
+                mSensorManager.registerListener(MainActivity.this, mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT), SensorManager.SENSOR_DELAY_NORMAL);
             }
         });
 
@@ -148,17 +155,43 @@ public class MainActivity extends Activity implements SensorEventListener {
             mag_x = x;
             mag_y = y;
             mag_z = z;
-        }
+        };
         if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
             Log.d("light", String.valueOf(x));
             light = x;
         }
 
         try {
-            createDataCsv(event.timestamp / 1000000, String.valueOf(acc_x),String.valueOf(acc_y),String.valueOf(acc_z),String.valueOf(gyro_x),String.valueOf(gyro_y),String.valueOf(gyro_z),String.valueOf(mag_x),String.valueOf(mag_y),String.valueOf(mag_z),String.valueOf(light));
-        } catch (IOException e) {
-            e.printStackTrace();
+            createDataCsv(event.timestamp / 1000000, String.valueOf(acc_x), String.valueOf(acc_y), String.valueOf(acc_z), String.valueOf(gyro_x), String.valueOf(gyro_y), String.valueOf(gyro_z), String.valueOf(mag_x), String.valueOf(mag_y), String.valueOf(mag_z), String.valueOf(light));
+            doStuff(acc_x,acc_y,acc_z);
         }
+        catch (IOException e) {
+            e.printStackTrace();
+            Log.d("here","Eroor");
+        }
+    }
+
+    public void doStuff(final float acc_x,final float acc_y,final float acc_z)throws IOException
+    {
+//        ParseObject testObject = new ParseObject("Data");
+//        testObject.put("acc_x", acc_x);
+//        testObject.saveInBackground();
+
+        ParseQuery<ParseObject> query = ParseQuery.getQuery("Data");
+// Retrieve the object by id
+        query.getInBackground("b0jFOwNg8p", new GetCallback<ParseObject>() {
+            @Override
+            public void done(ParseObject parseObject, com.parse.ParseException e) {
+                if (e == null) {
+                    // Now let's update it with some new data. In this case, only cheatMode and score
+                    // will get sent to the Parse Cloud. playerName hasn't changed.
+                    parseObject.put("acc_x", acc_x);
+                    parseObject.put("acc_y", acc_y);
+                    parseObject.put("acc_z",acc_z);
+                    parseObject.saveInBackground();
+                }
+            }
+        });
     }
 
     public void createCsv(String x, String y, String z, float timestamp) throws IOException {
@@ -216,25 +249,5 @@ public class MainActivity extends Activity implements SensorEventListener {
             file_writer.close();
 
         }
-
-    }
-
-    public void makeFirebase(){
-        Log.d("Here","Here");
-        Firebase myFirebaseRef = new Firebase("https://direction.firebaseio.com/message");
-        myFirebaseRef.child("message").setValue("Do you have data? You'll love Firebase.");
-
-        myFirebaseRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot snapshot) {
-               Log.d("Value", (String) snapshot.getValue());  //prints "Do you have data? You'll love Firebase."
-            }
-
-            @Override
-            public void onCancelled(FirebaseError error) {
-                Log.d("Error","Get Your shit together");
-            }
-        });
-
     }
 }
