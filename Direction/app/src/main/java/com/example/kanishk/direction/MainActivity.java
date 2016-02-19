@@ -44,11 +44,6 @@ public class MainActivity extends Activity implements SensorEventListener {
         Parse.enableLocalDatastore(this);
         Parse.initialize(this);
         ParseInstallation.getCurrentInstallation().saveInBackground();
-//        try {
-//            doStuff();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         activate();
     }
